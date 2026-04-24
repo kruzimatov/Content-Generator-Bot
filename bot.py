@@ -10,6 +10,7 @@ from telegram.ext import (
     filters,
 )
 
+
 from content_generator import (
     NICHE, TONE, PLATFORM,
     content_niche, content_tone, content_platform,
