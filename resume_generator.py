@@ -1,6 +1,5 @@
 import os
 import tempfile
-from fpdf import FPDF
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -21,58 +20,6 @@ TEMPLATE_CONFIGS = {
     "classic": ("Times New Roman", RGBColor(0, 0, 0), WD_ALIGN_PARAGRAPH.CENTER),
     "creative": ("Georgia", RGBColor(153, 0, 0), WD_ALIGN_PARAGRAPH.RIGHT),
 }
-
-
-def generate_resume_pdf(text: str, name: str, template: str, photo_path: str = None) -> str:
-    colors = {"modern": (0, 102, 204), "classic": (0, 0, 0), "creative": (153, 0, 0)}
-    color = colors.get(template, (0, 0, 0))
-
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
-
-    if photo_path and os.path.exists(photo_path):
-        pdf.image(photo_path, x=160, y=10, w=35)
-
-    pdf.set_text_color(*color)
-    pdf.set_font("Helvetica", "B", 22)
-    align = "C" if template == "classic" else ("R" if template == "creative" else "L")
-    pdf.cell(140 if photo_path else 0, 12, name, new_x="LMARGIN", new_y="NEXT", align=align)
-    pdf.ln(4)
-
-    if template == "classic":
-        pdf.set_draw_color(0, 0, 0)
-        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-        pdf.ln(4)
-
-    pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Helvetica", "", 11)
-
-    for line in text.split("\n"):
-        stripped = line.strip()
-        if stripped and stripped.endswith(":") and len(stripped) < 60:
-            pdf.ln(4)
-            pdf.set_text_color(*color)
-            pdf.set_font("Helvetica", "B", 13)
-            clean_header = stripped.encode("ascii", "ignore").decode().strip()
-            if clean_header:
-                pdf.cell(0, 8, clean_header, new_x="LMARGIN", new_y="NEXT")
-            if template == "classic":
-                pdf.set_draw_color(0, 0, 0)
-                pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                pdf.ln(2)
-            pdf.set_text_color(0, 0, 0)
-            pdf.set_font("Helvetica", "", 11)
-        elif stripped:
-            safe_line = stripped.encode("ascii", "ignore").decode().strip()
-            if safe_line:
-                pdf.multi_cell(0, 6, safe_line)
-        else:
-            pdf.ln(3)
-
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", prefix=f"Resume_{name}_")
-    pdf.output(tmp.name)
-    return tmp.name
 
 
 def generate_resume_docx(text: str, name: str, template: str, photo_path: str = None) -> str:
@@ -310,23 +257,10 @@ async def cv_language(update: Update, context) -> int:
     await send_long_message(query.message, result)
 
     name_safe = data["cv_name"].replace(" ", "_")
-    files_to_cleanup = []
-
-    try:
-        pdf_path = generate_resume_pdf(result, data["cv_name"], template, photo_path)
-        files_to_cleanup.append(pdf_path)
-        with open(pdf_path, "rb") as f:
-            await query.message.reply_document(
-                document=f,
-                filename=f"Resume_{name_safe}.pdf",
-                caption="📄 Resume — PDF formatda",
-            )
-    except Exception as e:
-        await query.message.reply_text(f"⚠️ PDF yaratishda xatolik: {e}")
+    docx_path = None
 
     try:
         docx_path = generate_resume_docx(result, data["cv_name"], template, photo_path)
-        files_to_cleanup.append(docx_path)
         with open(docx_path, "rb") as f:
             await query.message.reply_document(
                 document=f,
@@ -336,9 +270,9 @@ async def cv_language(update: Update, context) -> int:
     except Exception as e:
         await query.message.reply_text(f"⚠️ DOCX yaratishda xatolik: {e}")
 
-    for path in files_to_cleanup:
+    if docx_path:
         try:
-            os.unlink(path)
+            os.unlink(docx_path)
         except OSError:
             pass
     if photo_path:

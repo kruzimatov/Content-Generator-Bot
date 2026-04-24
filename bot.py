@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, BotCommand
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -41,82 +41,157 @@ from taxi_driver import (
 
 load_dotenv()
 
+MENU_STATE = 99
 
-async def start(update: Update, context) -> None:
-    keyboard = [
-        [InlineKeyboardButton("📝 Kontent Generator", callback_data="menu_content")],
-        [InlineKeyboardButton("🔍 Mijoz Topish + DM", callback_data="menu_dm")],
-        [InlineKeyboardButton("📄 Resume Generator", callback_data="menu_resume")],
-        [InlineKeyboardButton("💊 Dori Eslatma", callback_data="menu_med")],
-        [InlineKeyboardButton("📚 Talaba Yordamchi", callback_data="menu_student")],
-        [InlineKeyboardButton("🚕 Taxi Yordamchi", callback_data="menu_taxi")],
-    ]
+MAIN_KEYBOARD = ReplyKeyboardMarkup(
+    [
+        [KeyboardButton("📝 Kontent"), KeyboardButton("🔍 Mijoz DM")],
+        [KeyboardButton("📄 Resume"), KeyboardButton("💊 Dori Eslatma")],
+        [KeyboardButton("📚 Talaba"), KeyboardButton("🚕 Taxi")],
+    ],
+    resize_keyboard=True,
+)
+
+
+async def start(update: Update, context) -> int:
     await update.message.reply_text(
         "👋 Salom! Men AI Botman.\n\n"
-        "Nima qilmoqchisiz?\n\n"
-        "📝 Kontent Generator — tayyor post, caption, hashtag yaratish\n"
-        "🔍 Mijoz Topish + DM — target mijoz analizi va personal DM yozish\n"
-        "📄 Resume Generator — professional CV va cover letter yaratish\n"
-        "💊 Dori Eslatma — dori eslatma, tekshirish va ma'lumot\n"
-        "📚 Talaba Yordamchi — PDF/DOCX xulosa, konspekt, test, tarjima\n"
-        "🚕 Taxi Yordamchi — daromad, xarajat, foyda hisobi",
-        reply_markup=InlineKeyboardMarkup(keyboard),
+        "Pastdagi tugmalardan birini tanlang:\n\n"
+        "📝 Kontent — tayyor post, caption, hashtag\n"
+        "🔍 Mijoz DM — target mijoz + personal DM\n"
+        "📄 Resume — professional CV yaratish\n"
+        "💊 Dori Eslatma — dori vaqti va tekshirish\n"
+        "📚 Talaba — PDF/DOCX xulosa, test, tarjima\n"
+        "🚕 Taxi — daromad, xarajat, foyda hisobi",
+        reply_markup=MAIN_KEYBOARD,
     )
+    return MENU_STATE
 
 
-async def menu_choice(update: Update, context) -> None:
-    query = update.callback_query
-    await query.answer()
+async def menu_text(update: Update, context) -> int:
+    text = update.message.text
 
-    if query.data == "menu_content":
-        await query.edit_message_text(
+    if text == "📝 Kontent":
+        await update.message.reply_text(
             "📝 KONTENT GENERATOR\n\n"
             "📌 Niche yozing:\n"
             "Masalan: AI kurs, Fitness, Biznes, Ta'lim, Restoran..."
         )
         return NICHE
-    elif query.data == "menu_dm":
-        await query.edit_message_text(
+    elif text == "🔍 Mijoz DM":
+        await update.message.reply_text(
             "🔍 MIJOZ TOPISH + AUTO DM\n\n"
             "📌 Qaysi soha (niche) bo'yicha mijoz qidiryapsiz?\n"
             "Masalan: restoranlar, fitness trenerlar, onlayn do'konlar..."
         )
         return DM_NICHE
-    elif query.data == "menu_resume":
-        await query.edit_message_text(
+    elif text == "📄 Resume":
+        await update.message.reply_text(
             "📄 RESUME GENERATOR\n\n"
             "Professional CV yaratamiz!\n\n"
             "📌 Ismingizni kiriting:"
         )
         return CV_NAME
-    elif query.data == "menu_med":
+    elif text == "💊 Dori Eslatma":
         from med_reminder import med_menu
-        await med_menu(query.message, edit=True)
+        await med_menu(update.message)
         return MED_NAME
-    elif query.data == "menu_student":
-        await query.edit_message_text(
+    elif text == "📚 Talaba":
+        await update.message.reply_text(
             "📚 TALABA YORDAMCHI\n\n"
             "📄 PDF yoki DOCX fayl yuboring:\n"
             "(kitob, konspekt, maqola, referat...)"
         )
         return STU_UPLOAD
-    elif query.data == "menu_taxi":
+    elif text == "🚕 Taxi":
         from taxi_driver import taxi_menu
-        await taxi_menu(query.message, edit=True)
+        await taxi_menu(update.message)
         return TAXI_MENU
+
+    await update.message.reply_text("Pastdagi tugmalardan birini tanlang:", reply_markup=MAIN_KEYBOARD)
+    return MENU_STATE
+
+
+async def help_cmd(update: Update, context) -> None:
+    await update.message.reply_text(
+        "📖 YORDAM\n\n"
+        "Mavjud buyruqlar:\n"
+        "/start — Botni ishga tushirish\n"
+        "/help — Yordam ko'rsatish\n"
+        "/menu — Asosiy menyuga qaytish\n"
+        "/cancel — Joriy amalni bekor qilish\n"
+        "/about — Bot haqida ma'lumot\n\n"
+        "Funksiyalar:\n"
+        "📝 Kontent — Instagram, Telegram uchun post yaratish\n"
+        "🔍 Mijoz DM — target auditoriya + shaxsiy DM yozish\n"
+        "📄 Resume — professional CV (DOCX) yaratish\n"
+        "💊 Dori Eslatma — dori vaqtini eslatish, ta'sir tekshirish\n"
+        "📚 Talaba — PDF/DOCX fayl tahlili, xulosa, test\n"
+        "🚕 Taxi — yo'lov, yoqilg'i hisobi va foyda tahlili",
+        reply_markup=MAIN_KEYBOARD,
+    )
+
+
+async def about_cmd(update: Update, context) -> None:
+    await update.message.reply_text(
+        "🤖 AI Bot v1.0\n\n"
+        "6 ta AI yordamchi bir botda:\n"
+        "Kontent, Mijoz DM, Resume, Dori Eslatma,\n"
+        "Talaba Yordamchi, Taxi Yordamchi\n\n"
+        "AI: OpenAI GPT-4o-mini\n"
+        "Framework: python-telegram-bot",
+        reply_markup=MAIN_KEYBOARD,
+    )
+
+
+async def menu_cmd(update: Update, context) -> int:
+    await update.message.reply_text(
+        "📋 Asosiy menyu — pastdagi tugmalardan tanlang:",
+        reply_markup=MAIN_KEYBOARD,
+    )
+    return MENU_STATE
 
 
 async def cancel(update: Update, context) -> int:
-    await update.message.reply_text("❌ Bekor qilindi. /start bosib qaytadan boshlang.")
-    return ConversationHandler.END
+    await update.message.reply_text(
+        "❌ Bekor qilindi. Pastdagi tugmalardan tanlang:",
+        reply_markup=MAIN_KEYBOARD,
+    )
+    return MENU_STATE
+
+
+async def post_init(application: Application) -> None:
+    await application.bot.set_my_commands([
+        BotCommand("start", "Botni ishga tushirish"),
+        BotCommand("menu", "Asosiy menyu"),
+        BotCommand("help", "Yordam"),
+        BotCommand("cancel", "Bekor qilish"),
+        BotCommand("about", "Bot haqida"),
+    ])
 
 
 def main():
-    app = Application.builder().token(os.getenv("BOT_TOKEN")).build()
+    app = (
+        Application.builder()
+        .token(os.getenv("BOT_TOKEN"))
+        .connect_timeout(30)
+        .read_timeout(30)
+        .write_timeout(30)
+        .post_init(post_init)
+        .build()
+    )
+
+    menu_filter = filters.Regex(
+        r"^(📝 Kontent|🔍 Mijoz DM|📄 Resume|💊 Dori Eslatma|📚 Talaba|🚕 Taxi)$"
+    )
 
     conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(menu_choice, pattern="^menu_")],
+        entry_points=[
+            CommandHandler("start", start),
+            MessageHandler(menu_filter, menu_text),
+        ],
         states={
+            MENU_STATE: [MessageHandler(menu_filter, menu_text)],
             # Content Generator
             NICHE: [MessageHandler(filters.TEXT & ~filters.COMMAND, content_niche)],
             TONE: [CallbackQueryHandler(content_tone)],
@@ -158,11 +233,17 @@ def main():
             TAXI_TRIP: [MessageHandler(filters.TEXT & ~filters.COMMAND, taxi_trip_input)],
             TAXI_FUEL: [MessageHandler(filters.TEXT & ~filters.COMMAND, taxi_fuel_input)],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[
+            CommandHandler("cancel", cancel),
+            CommandHandler("start", start),
+            CommandHandler("menu", menu_cmd),
+            MessageHandler(menu_filter, menu_text),
+        ],
     )
 
-    app.add_handler(CommandHandler("start", start))
     app.add_handler(conv)
+    app.add_handler(CommandHandler("help", help_cmd))
+    app.add_handler(CommandHandler("about", about_cmd))
 
     # Restore saved medication reminders
     restore_all_reminders(app)

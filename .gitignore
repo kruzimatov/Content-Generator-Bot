@@ -3,3 +3,9 @@
 __pycache__/
 *.pyc
 /tasks_description
+venv/
+.venv/
+med_data.json
+taxi_data.json
+*.jpg
+*.tmp
