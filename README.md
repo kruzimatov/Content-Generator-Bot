@@ -32,13 +32,21 @@ Content_Ai/
 
 ## Setup
 
-### 1. Install dependencies
+### 1. Create virtual environment
 
 ```bash
-pip install python-telegram-bot openai python-dotenv fpdf2 python-docx pymupdf
+python -m venv venv
+source venv/bin/activate  # Mac/Linux
+# venv\Scripts\activate   # Windows
 ```
 
-### 2. Create `.env` file
+### 2. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Create `.env` file
 
 ```
 BOT_TOKEN=your_telegram_bot_token
@@ -47,7 +55,7 @@ OPENAI_API_KEY=your_openai_api_key
 
 Get bot token from [@BotFather](https://t.me/BotFather) on Telegram.
 
-### 3. Run the bot
+### 4. Run the bot
 
 ```bash
 python bot.py
